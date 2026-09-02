@@ -720,7 +720,14 @@ async function cargarDatosIniciales() {
     activeTimerId = null;
     document.getElementById('subtareas-list').innerHTML = '<i>Cargando subtareas...</i>';
     
-    apiCall('getSubtareasDeEvento', id).then(r => { subsActuales = r.result; actualizarTiempoRestante(); renderSubtareas(subsActuales); });
+    apiCall('getSubtareasDeEvento', id).then(r => { 
+      subsActuales = r.result || []; 
+      actualizarTiempoRestante(); 
+      renderSubtareas(subsActuales); 
+    }).catch(err => {
+      subsActuales = [];
+      document.getElementById('subtareas-list').innerHTML = '<p style="color:red">Error cargando subtareas: ' + err.message + '</p>';
+    });
   }
 
   function renderSubtareas(subsToRender) {
