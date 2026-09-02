@@ -7,7 +7,7 @@ window.addEventListener('offline', () => alert('Estás sin conexión. Los cambio
 
 const WRITE_ACTIONS = ['guardarEvento','editarEvento','borrarEvento','guardarSubtarea','editarSubtarea','borrarSubtarea','cambiarEstadoSubtarea','generarPDF','generarReporteBusqueda'];
 
-async function apiCall(action, data = null) {
+async function apiCall(action, data = null, timeoutMs = 20000) {
   if (!navigator.onLine) {
     if (WRITE_ACTIONS.includes(action)) {
       offlineQueue.push({ action, data });
@@ -18,26 +18,34 @@ async function apiCall(action, data = null) {
     }
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     let response;
     if (WRITE_ACTIONS.includes(action)) {
-      // POST for write operations to avoid URL length limits
       response = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, data })
+        body: JSON.stringify({ action, data }),
+        signal: controller.signal
       });
     } else {
-      // GET for read operations
       const params = new URLSearchParams({ action });
       if (data) params.append('data', JSON.stringify(data));
-      response = await fetch(`${SCRIPT_URL}?${params.toString()}`, { method: 'GET' });
+      response = await fetch(`${SCRIPT_URL}?${params.toString()}`, {
+        method: 'GET',
+        signal: controller.signal
+      });
     }
+    clearTimeout(timer);
     if (!response.ok) throw new Error('Error en red: ' + response.statusText);
     const result = await response.json();
     if (!result.success) throw new Error(result.error);
     return result;
   } catch (e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('Tiempo de espera agotado (20s). El servidor tardó demasiado.');
     console.error(e);
     throw e;
   }
@@ -89,7 +97,14 @@ async function cargarDatosIniciales() {
     alert('Error cargando eventos:\n\n' + err.message);
     return;
   }
-  // Load responsables in background, don't block or fail the main view
+  // Load all subtareas once and cache — no more per-event calls
+  try {
+    const res3 = await apiCall('getAllSubtareas');
+    if (res3.result) todasLasSubtareas = res3.result;
+  } catch (e) {
+    console.warn('No se pudieron precargar subtareas:', e.message);
+  }
+  // Load responsables in background
   try {
     const res2 = await apiCall('getResponsablesUnicos');
     const datalist = document.getElementById('responsables-list');
@@ -108,6 +123,7 @@ async function cargarDatosIniciales() {
 
 
   let eventosActuales = [];
+  let todasLasSubtareas = [];   // Cache global de subtareas
   let currentEventoData = null;
   let editandoEventoId = null;
   let editandoSubtareaId = null;
@@ -718,16 +734,23 @@ async function cargarDatosIniciales() {
   function cargarSubtareas(id) {
     if(activeTimerInterval) clearInterval(activeTimerInterval);
     activeTimerId = null;
-    document.getElementById('subtareas-list').innerHTML = '<i>Cargando subtareas...</i>';
-    
-    apiCall('getSubtareasDeEvento', id).then(r => { 
-      subsActuales = r.result || []; 
-      actualizarTiempoRestante(); 
-      renderSubtareas(subsActuales); 
-    }).catch(err => {
-      subsActuales = [];
-      document.getElementById('subtareas-list').innerHTML = '<p style="color:red">Error cargando subtareas: ' + err.message + '</p>';
-    });
+    // Use cache first for instant loading
+    if (todasLasSubtareas.length > 0) {
+      subsActuales = todasLasSubtareas.filter(s => s.idEvento === id || s.eventoId === id);
+      document.getElementById('subtareas-list').innerHTML = '';
+      actualizarTiempoRestante();
+      renderSubtareas(subsActuales);
+    } else {
+      // Fallback: network call if cache not loaded yet
+      apiCall('getSubtareasDeEvento', id).then(r => { 
+        subsActuales = r.result || []; 
+        actualizarTiempoRestante(); 
+        renderSubtareas(subsActuales); 
+      }).catch(err => {
+        subsActuales = [];
+        document.getElementById('subtareas-list').innerHTML = '<p style="color:red">Error cargando subtareas: ' + err.message + '</p>';
+      });
+    }
   }
 
   function renderSubtareas(subsToRender) {
@@ -984,17 +1007,21 @@ async function cargarDatosIniciales() {
     document.getElementById('subtareas-list').innerHTML = '<i>Guardando...</i>';
     if(editandoSubtareaId) {
       sub.idSubtarea = editandoSubtareaId;
-      apiCall('editarSubtarea', sub).then(r => { let res = r.result; if(res && res.error) alert("Error: " + res.error); cancelarEdicionSub(); cargarSubtareas(currentEventoId); });
+      apiCall('editarSubtarea', sub)
+        .then(r => { let res = r.result; if(res && res.error) alert("Error: " + res.error); todasLasSubtareas = []; cancelarEdicionSub(); cargarSubtareas(currentEventoId); })
+        .catch(e => { alert("Error al guardar subtarea: " + e.message); document.getElementById('subtareas-list').innerHTML = '<p style="color:red">Error: ' + e.message + '</p>'; cancelarEdicionSub(); });
     } else {
       sub.idEvento = currentEventoId;
-      apiCall('guardarSubtarea', sub).then(r => { let res = r.result; if(res && res.error) alert("Error: " + res.error); cancelarEdicionSub(); cargarSubtareas(currentEventoId); });
+      apiCall('guardarSubtarea', sub)
+        .then(r => { let res = r.result; if(res && res.error) alert("Error: " + res.error); todasLasSubtareas = []; cancelarEdicionSub(); cargarSubtareas(currentEventoId); })
+        .catch(e => { alert("Error al guardar subtarea: " + e.message); document.getElementById('subtareas-list').innerHTML = '<p style="color:red">Error: ' + e.message + '</p>'; cancelarEdicionSub(); });
     }
   }
 
   function borrarSubtarea(idSub) {
     if(!confirm("¿Borrar esta subtarea permanentemente?")) return;
     document.getElementById('subtareas-list').innerHTML = '<i>Borrando...</i>';
-    apiCall('borrarSubtarea', idSub).then(r => { let res = r.result; if(res && res.error) alert("Error: " + res.error); cargarSubtareas(currentEventoId); });
+    apiCall('borrarSubtarea', idSub).then(r => { let res = r.result; if(res && res.error) alert("Error: " + res.error); todasLasSubtareas = []; cargarSubtareas(currentEventoId); }).catch(e => { alert("Error: " + e.message); cargarSubtareas(currentEventoId); });
   }
 
   function cambiarEstadoDesdeLista(idSub, nuevoEstado) {
