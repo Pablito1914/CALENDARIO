@@ -5,9 +5,11 @@ let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
 window.addEventListener('online', syncOfflineQueue);
 window.addEventListener('offline', () => alert('Estás sin conexión. Los cambios se guardarán localmente.'));
 
+const WRITE_ACTIONS = ['guardarEvento','editarEvento','borrarEvento','guardarSubtarea','editarSubtarea','borrarSubtarea','cambiarEstadoSubtarea','generarPDF','generarReporteBusqueda'];
+
 async function apiCall(action, data = null) {
   if (!navigator.onLine) {
-    if (['guardarEvento', 'editarSubtarea', 'guardarSubtarea', 'cambiarEstadoSubtarea', 'borrarEvento', 'borrarSubtarea'].includes(action)) {
+    if (WRITE_ACTIONS.includes(action)) {
       offlineQueue.push({ action, data });
       localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
       return { success: true, offline: true };
@@ -17,9 +19,20 @@ async function apiCall(action, data = null) {
   }
 
   try {
-    const params = new URLSearchParams({ action });
-    if (data) params.append('data', JSON.stringify(data));
-    const response = await fetch(`${SCRIPT_URL}?${params.toString()}`, { method: 'GET' });
+    let response;
+    if (WRITE_ACTIONS.includes(action)) {
+      // POST for write operations to avoid URL length limits
+      response = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, data })
+      });
+    } else {
+      // GET for read operations
+      const params = new URLSearchParams({ action });
+      if (data) params.append('data', JSON.stringify(data));
+      response = await fetch(`${SCRIPT_URL}?${params.toString()}`, { method: 'GET' });
+    }
     if (!response.ok) throw new Error('Error en red: ' + response.statusText);
     const result = await response.json();
     if (!result.success) throw new Error(result.error);
