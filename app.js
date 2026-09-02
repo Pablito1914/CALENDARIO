@@ -465,8 +465,14 @@ function cargarDatosIniciales() {
     alert("Generando PDF consolidado para '" + queryActual + "'... esto puede tardar unos segundos.");
     apiCall('generarReporteBusqueda', queryActual).then(r => {
       let res = r.result;
-      if(res.success) window.open(res.url, '_blank');
-      else alert("Error: " + res.error);
+      if (res.success && res.base64) {
+        const link = document.createElement('a');
+        link.href = 'data:application/pdf;base64,' + res.base64;
+        link.download = res.filename || 'Busqueda.pdf';
+        link.click();
+      } else {
+        alert("Error: " + res.error);
+      }
     }).catch(err => alert("Error generando reporte: " + err.message));
   }
 
@@ -996,7 +1002,17 @@ function cargarDatosIniciales() {
 
   function descargarPDF() {
     alert("Generando PDF de la reunión... puede tardar unos 10 segundos.");
-    apiCall('generarPDF', currentEventoId).then(r => { let res = r.result; if(res.success) window.open(res.url, '_blank'); else alert("Error: " + res.error); });
+    apiCall('generarPDF', currentEventoId).then(r => { 
+      let res = r.result; 
+      if (res.success && res.base64) {
+        const link = document.createElement('a');
+        link.href = 'data:application/pdf;base64,' + res.base64;
+        link.download = res.filename || 'Reporte.pdf';
+        link.click();
+      } else {
+        alert("Error: " + res.error);
+      }
+    }).catch(e => alert("Error al generar PDF: " + e.message));
   }
 
   function obtenerUbicacionActual() {
