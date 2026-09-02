@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-title" content="Gestor">
+  <meta name="theme-color" content="#2c3e50">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
+  <link rel="apple-touch-icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📅</text></svg>">
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+    }
+
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.3s;
+    }
+
+    .btn:hover {
+      background-color: #2980b9;
+    }
+
+    .btn-pdf {
+      background-color: #e74c3c;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .btn-pdf:hover {
+      background-color: #c0392b;
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 5px;
+      opacity: 0.7;
+      transition: 0.3s;
+    }
+
+    .btn-icon:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      border-left: 5px solid #3498db;
+      position: relative;
+    }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+
+    .badge-tarea {
+      background-color: #e67e22;
+      color: white;
+    }
+
+    .badge-evento {
+      background-color: #9b59b6;
+      color: white;
+    }
+
+    .badge-reunion {
+      background-color: #34495e;
+      color: white;
+    }
+
+    .badge-gadpsdt {
+      background-color: #e67e22;
+      color: white;
+    }
+
+    .semaforo-verde {
+      background-color: #2ecc71;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .semaforo-amarillo {
+      background-color: #f1c40f;
+      color: black;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .semaforo-rojo {
+      background-color: #e74c3c;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .sync-status {
+      font-size: 12px;
+      color: #27ae60;
+      font-weight: bold;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    #loader {
+      text-align: center;
+      margin: 20px;
+      font-weight: bold;
+      color: #3498db;
+      font-size: 18px;
+    }
+
+    .card-actions {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+    }
+
+    .subtarea-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+      padding: 15px 0;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+
+    .search-bar input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    /* Cronómetro */
+    .timer-display {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: bold;
+      background: #eee;
+      border: 1px solid #ccc;
+      margin-left: 10px;
+    }
+
+    .timer-green {
+      background: #d4edda;
+      color: #155724;
+      border-color: #c3e6cb;
+    }
+
+    .timer-orange {
+      background: #fff3cd;
+      color: #856404;
+      border-color: #ffeeba;
+    }
+
+    .timer-red {
+      background: #f8d7da;
+      color: #721c24;
+      border-color: #f5c6cb;
+      animation: blinker 1s linear infinite;
+    }
+
+    @keyframes blinker {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    /* EnumList */
+    .enumlist-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: #fff;
+      min-height: 42px;
+      align-items: center;
+      box-sizing: border-box;
+    }
+
+    .chip {
+      background: #3498db;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .chip span {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .enumlist-container input {
+      border: none;
+      outline: none;
+      flex: 1;
+      min-width: 150px;
+      padding: 5px;
+      background: transparent;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+
+      .container {
+        padding: 15px;
+        margin: 0;
+        box-sizing: border-box;
+      }
+
+      .search-bar {
+        flex-direction: column;
+      }
+
+      .search-bar button,
+      .search-bar input,
+      .search-bar select {
+        width: 100% !important;
+        margin-top: 5px;
+        box-sizing: border-box;
+      }
+
+      .subtarea-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px;
+      }
+
+      .subtarea-row>div:nth-child(2) {
+        align-self: flex-start !important;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .flex-row-responsive {
+        flex-direction: column !important;
+        gap: 10px !important;
+      }
+
+      .flex-row-responsive>div,
+      .flex-row-responsive>button {
+        width: 100% !important;
+        flex: none !important;
+        margin-top: 5px;
+        box-sizing: border-box;
+      }
+
+      .fc .fc-toolbar {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+      }
+
+      select {
+        font-size: 16px;
+        /* Evitar zoom en iOS */
+      }
+
+      input {
+        font-size: 16px;
+        /* Evitar zoom en iOS */
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <datalist id="responsables-list"></datalist>
+
+  <div class="container">
+    <h1>🗓️ Gestor Inteligente de Actividades</h1>
+    <div id="loader">Conectando con Google Sheets...</div>
+
+    <!-- VISTA: DASHBOARD PRINCIPAL -->
+    <div id="main-view" class="hidden">
+
+      <div class="flex-row-responsive" style="display:flex; justify-content:center; gap:10px; margin-bottom: 20px;">
+        <button id="btn-view-list" class="btn" style="background-color: #2c3e50;" onclick="switchView('list')">📋 Vista
+          Lista</button>
+        <button id="btn-view-cal" class="btn" style="background-color: #95a5a6;" onclick="switchView('cal')">📅 Vista
+          Calendario</button>
+        <button id="btn-view-biomag" class="btn" style="background-color: #95a5a6;" onclick="switchView('biomag')">🧲
+          Biomagnetic</button>
+      </div>
+
+      <div class="search-bar">
+        <input type="text" id="busqueda-input" list="responsables-list"
+          placeholder="Buscar por responsable, tarea o palabra clave..."
+          onkeydown="if(event.key === 'Enter') ejecutarBusqueda()">
+        <button class="btn" onclick="ejecutarBusqueda()">🔍 Buscar</button>
+        <button class="btn" style="background-color: #95a5a6;" id="btn-limpiar" onclick="limpiarBusqueda()"
+          class="hidden">✖</button>
+      </div>
+
+      <div class="flex-row-responsive" style="display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn" onclick="openFormEvento()">+ Crear Nueva Actividad</button>
+        <button class="btn btn-pdf hidden" id="btn-print-search" style="width:auto; margin-top:0;"
+          onclick="descargarReporteBusqueda()">📄 Reporte de Búsqueda PDF</button>
+      </div>
+
+      <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+      <div id="eventos-list"></div>
+      <div id="calendar-view" class="hidden"
+        style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);"></div>
+      <div id="biomag-view" class="hidden"
+        style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <h2 style="text-align: center; color: #2c3e50;">Citas Biomagnetic</h2>
+        <div id="biomag-calendar-container"></div>
+      </div>
+    </div>
+
+    <!-- VISTA: FORMULARIO EVENTOS (CREAR/EDITAR) -->
+    <div id="form-view" class="hidden">
+      <h2 id="form-title">Registrar Nueva Actividad</h2>
+
+      <div class="form-group">
+        <label>Tipo de Actividad</label>
+        <select id="tipo" onchange="toggleFormFields()">
+          <option value="Tarea">📝 Tarea (Con semáforo)</option>
+          <option value="Evento">📅 Evento (Avisa con 1 día y 1 hr)</option>
+          <option value="Reunión">🤝 Reunión (Permite moderar tiempo, subtareas y acuerdos)</option>
+          <option value="GADPSDT">🏢 GADPSDT (No valida cruces)</option>
+        </select>
+      </div>
+
+      <div class="form-group hidden" id="group-estado-tarea">
+        <label>Estado de la Tarea</label>
+        <select id="estado-tarea">
+          <option value="En camino">En camino</option>
+          <option value="Cumplido">✅ Cumplido</option>
+        </select>
+      </div>
+
+      <div class="form-group"><label>Título</label><input type="text" id="titulo" spellcheck="true" lang="es"
+          placeholder="Ej. Presentación de Resultados"></div>
+      <div class="form-group hidden" id="group-ubicacion">
+        <label>Ubicación</label>
+        <div style="display:flex; gap:10px;">
+          <input type="text" id="ubicacion" spellcheck="true" lang="es"
+            placeholder="Ej. Dirección o Enlace a videollamada" style="flex:1; min-width: 0;">
+          <button type="button" class="btn"
+            style="width:auto; padding: 10px 15px; margin: 0; background-color: #3498db; flex:none;"
+            onclick="obtenerUbicacionActual()" title="Usar mi ubicación actual">📍</button>
+        </div>
+      </div>
+
+      <div class="flex-row-responsive" style="display:flex; gap:10px;">
+        <div class="form-group" style="flex:1;"><label>Inicio</label><input type="datetime-local" id="fechaInicio">
+        </div>
+        <div class="form-group" style="flex:1;" id="group-fecha-fin"><label>Fin / Límite</label><input
+            type="datetime-local" id="fechaFin"></div>
+
+        <div class="form-group hidden" style="flex:1;" id="group-duracion-horas"><label>Duración (Horas)</label><input
+            type="number" id="duracion-horas" min="0" value="1"></div>
+        <div class="form-group hidden" style="flex:1;" id="group-duracion-minutos"><label>Minutos</label><input
+            type="number" id="duracion-minutos" min="0" max="59" value="0"></div>
+      </div>
+
+      <div id="extra-fields" class="hidden">
+        <div class="form-group">
+          <label>Asistentes</label>
+          <div class="enumlist-container" onclick="document.getElementById('asistentes-input').focus()">
+            <div id="asistentes-chips" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
+            <input type="text" id="asistentes-input" list="responsables-list"
+              placeholder="Escribe y pulsa Enter o la coma (,)" onkeydown="handleAsistenteInput(event)">
+          </div>
+          <input type="hidden" id="asistentes">
+        </div>
+        <div class="form-group"><label>Acuerdos Iniciales</label><textarea id="acuerdos" rows="3" spellcheck="true"
+            lang="es" placeholder="Acuerdos o notas..."></textarea></div>
+      </div>
+
+      <button class="btn" onclick="guardarEventoBtn()">Guardar Actividad</button>
+      <button class="btn" style="background:#95a5a6;" onclick="showMain()">Cancelar</button>
+    </div>
+
+    <!-- VISTA: DETALLES DE REUNION Y SUBTAREAS -->
+    <div id="detalle-view" class="hidden">
+      <button class="btn" style="background:#95a5a6; margin-bottom:15px;" onclick="showMain()">← Volver al
+        Inicio</button>
+
+      <div style="margin-bottom: 10px;"><span id="det-badge" class="badge"></span></div>
+      <h2 id="det-titulo" style="margin-top: 0;"></h2>
+
+      <div id="seccion-detalles-comunes" class="hidden"
+        style="margin-bottom:20px; background:#f9f9f9; padding:15px; border-radius:6px; border:1px solid #ddd;">
+        <p style="margin-top:0;"><strong>Ubicación:</strong> <span id="det-ubicacion"></span></p>
+        <p><strong>Asistentes:</strong> <span id="det-asistentes"></span></p>
+        <p style="margin-bottom:0;"><strong>Acuerdos:</strong> <span id="det-acuerdos"></span></p>
+      </div>
+
+      <div id="seccion-reunion" class="hidden">
+        <div
+          style="background:#e8f4f8; padding:10px; border-radius:6px; margin-bottom:15px; font-weight:bold; color:#2980b9;">
+          ⏱️ Tiempo Restante de la Reunión: <span id="tiempo-restante">--</span> min
+        </div>
+
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+        <div class="flex-row-responsive" style="display:flex; justify-content:space-between; align-items:center;">
+          <h3>Gestión de Subtareas</h3>
+        </div>
+        <div class="search-bar" style="margin-bottom: 10px; padding: 10px;">
+          <input type="text" id="sub-search-text" placeholder="Buscar subtarea..." onkeyup="filtrarSubtareasLocales()">
+          <select id="sub-search-estado" onchange="filtrarSubtareasLocales()"
+            style="padding: 10px; border-radius: 6px; border: 1px solid #ccc;">
+            <option value="Todos">Todos los Estados</option>
+            <option value="En camino">En camino</option>
+            <option value="Atrasado">Atrasado</option>
+            <option value="Cumplido">Cumplido</option>
+          </select>
+        </div>
+        <div id="subtareas-list"></div>
+
+        <!-- Panel de Creación / Edición de Subtarea -->
+        <div id="subtareas-form-container-original">
+          <div id="panel-subtarea-form"
+            style="background:#f8f9fa; padding:15px; border-radius:6px; margin-top:15px; border: 1px solid #ddd;">
+            <h4 id="sub-form-title">+ Añadir Subtarea</h4>
+
+            <div class="flex-row-responsive" style="display:flex; gap:10px;">
+              <div class="form-group" style="flex:2;">
+                <label style="font-size:12px;">¿Qué hay que hacer?</label>
+                <input type="text" id="sub-titulo" spellcheck="true" lang="es" placeholder="Ej. Preparar diapositivas">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label style="font-size:12px;">Referencia (opcional)</label>
+                <div class="enumlist-container" onclick="document.getElementById('sub-ref-input').focus()">
+                  <div id="sub-ref-chips" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
+                  <input type="text" id="sub-ref-input" spellcheck="true" lang="es" placeholder="Añadir..."
+                    onkeydown="handleRefInput(event)">
+                </div>
+                <input type="hidden" id="sub-ref">
+              </div>
+            </div>
+
+            <div class="flex-row-responsive" style="display:flex; gap:10px;">
+              <div class="form-group" style="flex:2;">
+                <label style="font-size:12px;">Responsable</label>
+                <div class="enumlist-container" onclick="document.getElementById('sub-resp-input').focus()">
+                  <div id="sub-resp-chips" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
+                  <input type="text" id="sub-resp-input" spellcheck="true" lang="es"
+                    placeholder="Escribe y presiona Enter o Coma" onkeydown="handleRespInput(event)">
+                </div>
+                <input type="hidden" id="sub-resp">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label style="font-size:12px;">Fecha Límite</label>
+                <input type="date" id="sub-fecha">
+              </div>
+              <div class="form-group" style="flex:1;"><label style="font-size:12px;">Tiempo (min)</label><input
+                  type="number" id="sub-duracion" placeholder="Minutos" min="1" value="5"></div>
+            </div>
+            <div class="form-group hidden" id="sub-estado-container">
+              <label style="font-size:12px;">Estado Manual</label>
+              <select id="sub-estado">
+                <option value="En camino">En camino</option>
+                <option value="Atrasado">Atrasado</option>
+                <option value="Cumplido">✅ Cumplido (Verde)</option>
+              </select>
+            </div>
+            <button class="btn" style="width: 100%;" id="btn-save-sub" onclick="guardarSubtareaBtn()">Añadir
+              Subtarea</button>
+            <button class="btn hidden" style="width: 100%; background:#95a5a6; margin-top:5px;" id="btn-cancel-sub"
+              onclick="cancelarEdicionSub()">Cancelar Edición</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="seccion-tarea" class="hidden">
+        <p>Esta es una Tarea individual. (Si necesitas asignar responsabilidades múltiples, edita el tipo a Reunión).
+        </p>
+      </div>
+
+      <button class="btn btn-pdf" onclick="descargarPDF()">📄 Descargar Reporte PDF</button>
+    </div>
+  </div>
+
+
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+
+</html>
