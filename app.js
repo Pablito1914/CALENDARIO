@@ -72,29 +72,38 @@ async function syncOfflineQueue() {
   }
 }
 
-function cargarDatosIniciales() {
+async function cargarDatosIniciales() {
   mostrarLoader('Cargando desde la nube (PWA)...');
-  
-  apiCall('getEventos').then(res => {
-    eventosActuales = res.result;
+  try {
+    const res = await apiCall('getEventos');
+    eventosActuales = res.result || [];
     renderEventos();
     renderCalendar();
     document.getElementById('loader').classList.add('hidden');
     document.getElementById('main-view').classList.remove('hidden');
-    
-    return apiCall('getResponsablesUnicos');
-  }).then(res => {
-    const datalist = document.getElementById('responsables-list');
-    datalist.innerHTML = '';
-    res.result.forEach(r => {
-      let opt = document.createElement('option');
-      opt.value = r;
-      datalist.appendChild(opt);
-    });
-  }).catch(err => {
+    document.getElementById('form-view').classList.add('hidden');
+    document.getElementById('detail-view').classList.add('hidden');
+  } catch (err) {
     console.error(err);
+    document.getElementById('loader').classList.add('hidden');
     alert('Error cargando eventos:\n\n' + err.message);
-  });
+    return;
+  }
+  // Load responsables in background, don't block or fail the main view
+  try {
+    const res2 = await apiCall('getResponsablesUnicos');
+    const datalist = document.getElementById('responsables-list');
+    if (datalist && res2.result) {
+      datalist.innerHTML = '';
+      res2.result.forEach(r => {
+        let opt = document.createElement('option');
+        opt.value = r;
+        datalist.appendChild(opt);
+      });
+    }
+  } catch (e) {
+    console.warn('No se pudieron cargar responsables:', e.message);
+  }
 }
 
 
