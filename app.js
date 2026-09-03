@@ -118,6 +118,11 @@ async function syncOfflineQueue() {
 }
 
 async function cargarDatosIniciales() {
+  // Inicializar Flatpickr para fechas
+  flatpickr('#fechaInicio', { enableTime: true, dateFormat: 'Y-m-d\\TH:i', locale: 'es', disableMobile: true });
+  flatpickr('#fechaFin', { enableTime: true, dateFormat: 'Y-m-d\\TH:i', locale: 'es', disableMobile: true });
+  flatpickr('#sub-fecha', { enableTime: false, dateFormat: 'Y-m-d', locale: 'es', disableMobile: true });
+  
   mostrarLoader('Cargando desde la nube (PWA)...');
   try {
     const res = await apiCall('getEventos');
