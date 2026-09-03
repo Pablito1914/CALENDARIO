@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calendario-cache-v1788384647783';
+const CACHE_NAME = 'calendario-cache-v1788441465179';
 const urlsToCache = [
   './',
   './index.html',
