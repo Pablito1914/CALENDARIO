@@ -1004,6 +1004,13 @@ async function cargarDatosIniciales() {
        return alert(`¡Cuidado! Estás asignando ${sub.duracionAsignada} minutos, pero a la reunión solo le quedan ${restanteActual} minutos disponibles.`);
     }
 
+    // Mover el panel a su contenedor original ANTES de sobreescribir subtareas-list
+    let originalContainer = document.getElementById('subtareas-form-container-original');
+    let panel = document.getElementById('panel-subtarea-form');
+    if (originalContainer && panel) {
+      originalContainer.appendChild(panel);
+    }
+
     document.getElementById('subtareas-list').innerHTML = '<i>Guardando...</i>';
     if(editandoSubtareaId) {
       sub.idSubtarea = editandoSubtareaId;
