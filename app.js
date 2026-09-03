@@ -128,6 +128,10 @@ async function cargarDatosIniciales() {
     document.getElementById('main-view').classList.remove('hidden');
     document.getElementById('form-view').classList.add('hidden');
     document.getElementById('detalle-view').classList.add('hidden');
+    
+    if (window.innerWidth <= 768) {
+      switchView('cal');
+    }
   } catch (err) {
     console.error(err);
     document.getElementById('loader').classList.add('hidden');
