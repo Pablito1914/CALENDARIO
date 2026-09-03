@@ -56,9 +56,16 @@ async function apiCall(action, data = null, timeoutMs = 20000) {
   } catch (e) {
     clearTimeout(timer);
     if (e.name === 'AbortError') throw new Error('Tiempo de espera agotado (20s). El servidor tardó demasiado.');
-    console.error(e);
+    console.error("Error en apiCall (probablemente sin internet):", e);
     
-    if (!WRITE_ACTIONS.includes(action)) {
+    if (WRITE_ACTIONS.includes(action)) {
+      // Guardar en cola offline si la petición de escritura falla por falta de internet
+      console.warn(`Petición fallida para ${action}, guardando en cola offline...`);
+      offlineQueue.push({ action, data });
+      localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+      return { success: true, offline: true };
+    } else {
+      // Intentar cargar desde caché para peticiones de lectura
       const cached = localStorage.getItem('cache_' + action);
       if (cached) {
         console.warn(`Falló la red para ${action}. Cargando desde caché...`);
