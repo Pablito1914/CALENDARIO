@@ -14,7 +14,12 @@ async function apiCall(action, data = null, timeoutMs = 20000) {
       localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
       return { success: true, offline: true };
     } else {
-      throw new Error('Estás offline. No se puede cargar datos nuevos.');
+      const cached = localStorage.getItem('cache_' + action);
+      if (cached) {
+        console.log(`Cargando ${action} desde caché local (offline)...`);
+        return { success: true, result: JSON.parse(cached), offline: true };
+      }
+      throw new Error('Estás offline. No hay datos guardados para mostrar.');
     }
   }
 
@@ -42,11 +47,25 @@ async function apiCall(action, data = null, timeoutMs = 20000) {
     if (!response.ok) throw new Error('Error en red: ' + response.statusText);
     const result = await response.json();
     if (!result.success) throw new Error(result.error);
+    
+    if (!WRITE_ACTIONS.includes(action)) {
+      localStorage.setItem('cache_' + action, JSON.stringify(result.result));
+    }
+    
     return result;
   } catch (e) {
     clearTimeout(timer);
     if (e.name === 'AbortError') throw new Error('Tiempo de espera agotado (20s). El servidor tardó demasiado.');
     console.error(e);
+    
+    if (!WRITE_ACTIONS.includes(action)) {
+      const cached = localStorage.getItem('cache_' + action);
+      if (cached) {
+        console.warn(`Falló la red para ${action}. Cargando desde caché...`);
+        return { success: true, result: JSON.parse(cached), offline: true };
+      }
+    }
+    
     throw e;
   }
 }
@@ -58,18 +77,29 @@ async function syncOfflineQueue() {
   while (offlineQueue.length > 0) {
     const task = offlineQueue[0];
     try {
-      const url = new URL(SCRIPT_URL);
-      url.searchParams.append('action', task.action);
-      if (task.data) url.searchParams.append('data', JSON.stringify(task.data));
-      const response = await fetch(url.toString(), { method: 'GET' });
+      let response;
+      if (WRITE_ACTIONS.includes(task.action)) {
+        response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: task.action, data: task.data })
+        });
+      } else {
+        const params = new URLSearchParams({ action: task.action });
+        if (task.data) params.append('data', JSON.stringify(task.data));
+        response = await fetch(`${SCRIPT_URL}?${params.toString()}`, { method: 'GET' });
+      }
+      
       const result = await response.json();
       if (result.success) {
         offlineQueue.shift();
         localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
       } else {
+        console.error("Error sincronizando:", result.error);
         break; 
       }
     } catch (e) {
+      console.error("Fallo de red en sync:", e);
       break; 
     }
   }

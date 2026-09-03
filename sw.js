@@ -1,10 +1,11 @@
-const CACHE_NAME = 'calendario-cache-v1788444847224';
+const CACHE_NAME = 'calendario-cache-v1788444847225';
 const urlsToCache = [
   './',
   './index.html',
   './app.js',
   './manifest.json',
-  'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'
+  'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap'
 ];
 
 self.addEventListener('install', event => {
