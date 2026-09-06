@@ -476,8 +476,13 @@
 
     <!-- VISTA: DETALLES DE REUNION Y SUBTAREAS -->
     <div id="detalle-view" class="hidden">
-      <button class="btn" style="background:#95a5a6; margin-bottom:15px;" onclick="showMain()">← Volver al
-        Inicio</button>
+      <div style="display:flex; justify-content:space-between; margin-bottom:15px; flex-wrap: wrap; gap: 10px;">
+        <button class="btn" style="background:#95a5a6; margin:0; width:auto;" onclick="showMain()">← Volver al Inicio</button>
+        <div style="display:flex; gap:5px;">
+          <button class="btn" style="background:#3498db; margin:0; width:auto;" onclick="editarEventoInit(currentEventoId)">✏️ Editar</button>
+          <button class="btn" style="background:#e74c3c; margin:0; width:auto;" onclick="borrarEvento(currentEventoId)">🗑️ Borrar</button>
+        </div>
+      </div>
 
       <div style="margin-bottom: 10px;"><span id="det-badge" class="badge"></span></div>
       <h2 id="det-titulo" style="margin-top: 0;"></h2>
