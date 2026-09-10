@@ -326,7 +326,7 @@ async function cargarDatosIniciales() {
       let semaforoTarea = '';
       if(ev.tipo === 'Tarea' && ev.estadoTarea) {
         let cls = ev.estadoTarea === 'Atrasado' ? 'semaforo-rojo' : (ev.estadoTarea === 'Cumplido' ? 'semaforo-verde' : 'semaforo-amarillo');
-        semaforoTarea = `<span class="${cls}" style="float: right;">${ev.estadoTarea}</span>`;
+        semaforoTarea = `<span class="${cls}" style="float: right; margin-right: 65px; margin-top: -2px;">${ev.estadoTarea}</span>`;
       }
       
       let duracionInfo = ((ev.tipo === 'Reunión' || ev.tipo === 'GADPSDT') && ev.duracion > 0) ? `<br><small style="color:#2980b9;">⏱️ Duración: ${ev.duracion} min</small>` : '';
