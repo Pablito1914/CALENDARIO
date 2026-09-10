@@ -7,7 +7,7 @@ window.addEventListener('offline', () => alert('Estás sin conexión. Los cambio
 
 const WRITE_ACTIONS = ['guardarEvento','editarEvento','borrarEvento','guardarSubtarea','editarSubtarea','borrarSubtarea','cambiarEstadoSubtarea','generarPDF','generarReporteBusqueda'];
 
-async async function apiCall(action, data = null, timeoutMs = 45000) {
+async function apiCall(action, data = null, timeoutMs = 45000) {
   if (!navigator.onLine) {
     if (WRITE_ACTIONS.includes(action)) {
       offlineQueue.push({ action, data });
