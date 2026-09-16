@@ -839,7 +839,11 @@ async function cargarDatosIniciales() {
           </div>
           <div style="display:flex; align-items:center;">
              <span class="timer-display hidden" id="timer-display-${sub.idSubtarea}">--:--</span>
+             
+             <button class="btn-icon" onclick="moverSubtarea('${sub.idSubtarea}', -1)" title="Subir">⬆️</button>
+             <button class="btn-icon" onclick="moverSubtarea('${sub.idSubtarea}', 1)" title="Bajar">⬇️</button>
              <button class="btn-icon" style="font-size:24px;" onclick="toggleTimer('${sub.idSubtarea}')" title="Iniciar/Pausar Cronómetro">▶️</button>
+
              <button class="btn-icon" onclick="editarSubtareaInit('${sub.idSubtarea}')" title="Editar">✏️</button>
              <button class="btn-icon" onclick="borrarSubtarea('${sub.idSubtarea}')" title="Borrar">🗑️</button>
           </div>
@@ -1230,3 +1234,36 @@ function linkify(text) {
     return '<a href="' + url + '" target="_blank" style="color:#3498db; text-decoration:underline;">' + url + '</a>';
   });
 }
+
+
+  function moverSubtarea(idSub, direccion) {
+    const idx = subsActuales.findIndex(s => s.idSubtarea === idSub);
+    if (idx === -1) return;
+    
+    const targetIdx = idx + direccion;
+    if (targetIdx < 0 || targetIdx >= subsActuales.length) return;
+    
+    const subA = subsActuales[idx];
+    const subB = subsActuales[targetIdx];
+    
+    const fieldsToSwap = ['titulo', 'fechaLimite', 'responsable', 'referencia', 'estado', 'duracionAsignada', 'fechaLimiteUI'];
+    
+    fieldsToSwap.forEach(f => {
+      const temp = subA[f];
+      subA[f] = subB[f];
+      subB[f] = temp;
+    });
+    
+    renderSubtareas(subsActuales);
+    
+    mostrarLoader("Guardando orden...");
+    Promise.all([
+      apiCall('editarSubtarea', subA),
+      apiCall('editarSubtarea', subB)
+    ]).then(() => {
+      document.getElementById('loader').classList.add('hidden');
+    }).catch(err => {
+      document.getElementById('loader').classList.add('hidden');
+      alert("Error al guardar el nuevo orden: " + err);
+    });
+  }
