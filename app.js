@@ -1134,7 +1134,7 @@ async function cargarDatosIniciales() {
   }
 
   function copiarEnlaceCompartir() {
-    const url = window.location.origin + window.location.pathname + "?share=" + currentEventoId;
+    const url = "https://calendario-frontend-chi.vercel.app/?share=" + currentEventoId;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(() => {
         alert("Enlace de compartir copiado al portapapeles.\n\nPuedes enviarlo por WhatsApp o correo.");
