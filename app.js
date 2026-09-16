@@ -272,7 +272,13 @@ async function cargarDatosIniciales() {
   let activeTimerTotalSeconds = 0;
 
   window.onload = function() { 
-    cargarDatosIniciales();
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedId = urlParams.get('share');
+    if (sharedId) {
+      cargarVistaCompartida(sharedId);
+    } else {
+      cargarDatosIniciales();
+    }
   };
 
   function mostrarLoader(msg) {
@@ -738,7 +744,7 @@ async function cargarDatosIniciales() {
     if (currentEventoData.tipo === 'Reunión' || currentEventoData.tipo === 'Evento' || currentEventoData.tipo === 'GADPSDT') {
       document.getElementById('seccion-detalles-comunes').classList.remove('hidden');
       document.getElementById('det-asistentes').innerText = currentEventoData.asistentes || 'Ninguno';
-      document.getElementById('det-acuerdos').innerText = currentEventoData.acuerdos || 'Ninguno';
+      document.getElementById('det-acuerdos').innerHTML = linkify(currentEventoData.acuerdos) || 'Ninguno';
       
       if(currentEventoData.ubicacion) {
         document.getElementById('det-ubicacion').innerHTML = `<a href="https://maps.google.com/?q=${encodeURIComponent(currentEventoData.ubicacion)}" target="_blank" style="color:#3498db; text-decoration:underline;">${currentEventoData.ubicacion}</a>`;
@@ -1127,5 +1133,100 @@ async function cargarDatosIniciales() {
     }
   }
 
+  function copiarEnlaceCompartir() {
+    const url = window.location.origin + window.location.pathname + "?share=" + currentEventoId;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Enlace de compartir copiado al portapapeles.\n\nPuedes enviarlo por WhatsApp o correo.");
+      }).catch(err => {
+        alert("Error al copiar el enlace: " + err);
+      });
+    } else {
+      alert("Copia este enlace manualmente:\n\n" + url);
+    }
+  }
 
-document.addEventListener("DOMContentLoaded", cargarDatosIniciales);
+  async function cargarVistaCompartida(id) {
+    mostrarLoader("Cargando evento compartido...");
+    try {
+      const res = await apiCall('getEventos');
+      const eventos = res.result || [];
+      const ev = eventos.find(e => e.id === id);
+      
+      if (!ev) {
+        document.getElementById('loader').innerText = "El evento no fue encontrado o fue eliminado.";
+        return;
+      }
+      
+      document.getElementById('loader').classList.add('hidden');
+      document.getElementById('shared-view').classList.remove('hidden');
+      
+      document.getElementById('shared-titulo').innerText = ev.titulo;
+      
+      let badgeClass = 'badge-tarea';
+      if(ev.tipo === 'Evento') badgeClass = 'badge-evento';
+      if(ev.tipo === 'Reunión') badgeClass = 'badge-reunion';
+      if(ev.tipo === 'GADPSDT') badgeClass = 'badge-gadpsdt';
+      document.getElementById('shared-badge').className = 'badge ' + badgeClass;
+      document.getElementById('shared-badge').innerText = ev.tipo;
+      
+      const fechaFormat = new Date(ev.fechaInicio).toLocaleString();
+      document.getElementById('shared-fecha').innerText = fechaFormat + (ev.duracion ? ` (Duración: ${ev.duracion} min)` : '');
+      document.getElementById('shared-ubicacion').innerHTML = ev.ubicacion ? `<a href="https://maps.google.com/?q=${encodeURIComponent(ev.ubicacion)}" target="_blank" style="color:#3498db; text-decoration:underline;">${ev.ubicacion}</a>` : 'No especificada';
+      document.getElementById('shared-asistentes').innerText = ev.asistentes || 'No especificados';
+      document.getElementById('shared-acuerdos').innerHTML = linkify(ev.acuerdos) || 'Ninguno';
+      
+      if (ev.tipo === 'Reunión' || ev.tipo === 'GADPSDT') {
+        const resSub = await apiCall('getAllSubtareas');
+        const todasSubs = resSub.result || [];
+        const subs = todasSubs.filter(s => s.idEvento === id || s.eventoId === id);
+        
+        if (subs.length > 0) {
+          document.getElementById('shared-subtareas-container').classList.remove('hidden');
+          const divList = document.getElementById('shared-subtareas-list');
+          divList.innerHTML = '';
+          
+          subs.forEach(sub => {
+            let cls = 'semaforo-rojo';
+            if(sub.estado === 'Cumplido') cls = 'semaforo-verde';
+            else if(sub.estado === 'En camino') cls = 'semaforo-amarillo';
+            
+            divList.innerHTML += `
+              <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
+                <div style="display:flex; justify-content:space-between;">
+                  <strong style="color:#2c3e50; flex:1;">${sub.titulo}</strong>
+                  <span class="${cls}">${sub.estado}</span>
+                </div>
+                <div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">
+                  <span>👤 Resp: ${sub.responsable}</span>
+                  <span style="margin-left: 10px;">⏳ Límite: ${sub.fechaLimiteUI}</span>
+                  ${sub.referencia ? `<span style="margin-left: 10px; color:#9b59b6;">🔗 Ref: ${sub.referencia}</span>` : ''}
+                </div>
+              </div>
+            `;
+          });
+        }
+      }
+      
+      const btnSugerir = document.getElementById('btn-sugerir');
+      if (btnSugerir) {
+        btnSugerir.onclick = function() {
+          const subject = encodeURIComponent("Sugerencia para: " + ev.titulo);
+          const body = encodeURIComponent("Hola, estaba revisando el enlace compartido y tengo la siguiente sugerencia:\n\n");
+          window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        };
+      }
+      
+    } catch (e) {
+      document.getElementById('loader').innerText = "Error cargando la vista: " + e.message;
+    }
+  }
+
+
+function linkify(text) {
+  if (!text) return '';
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.replace(urlRegex, function(url) {
+    return '<a href="' + url + '" target="_blank" style="color:#3498db; text-decoration:underline;">' + url + '</a>';
+  });
+}

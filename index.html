@@ -577,8 +577,37 @@
         </p>
       </div>
 
-      <button class="btn btn-pdf" onclick="descargarPDF()">📄 Descargar Reporte PDF</button>
+      <div style="display:flex; gap:10px; margin-top: 15px; flex-wrap: wrap;">
+        <button class="btn btn-pdf" style="flex:1; margin-top:0;" onclick="descargarPDF()">📄 Descargar Reporte PDF</button>
+        <button class="btn" style="flex:1; margin-top:0; background-color: #27ae60;" onclick="copiarEnlaceCompartir()">🔗 Compartir Enlace Web</button>
+      </div>
     </div>
+
+    <!-- VISTA: COMPARTIDA (SOLO LECTURA) -->
+    <div id="shared-view" class="hidden">
+      <h2 id="shared-titulo" style="text-align:center; margin-bottom: 5px;"></h2>
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span id="shared-badge" class="badge"></span>
+      </div>
+
+      <div style="background:#f9f9f9; padding:15px; border-radius:6px; border:1px solid #ddd; margin-bottom: 20px;">
+        <p><strong>🗓️ Fecha:</strong> <span id="shared-fecha"></span></p>
+        <p><strong>📍 Ubicación:</strong> <span id="shared-ubicacion"></span></p>
+        <p><strong>👥 Asistentes:</strong> <span id="shared-asistentes"></span></p>
+        <p><strong>📝 Acuerdos:</strong> <span id="shared-acuerdos"></span></p>
+      </div>
+
+      <div id="shared-subtareas-container" class="hidden">
+        <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Subtareas Asignadas</h3>
+        <div id="shared-subtareas-list"></div>
+      </div>
+
+      <div style="margin-top: 30px; text-align: center;">
+        <button class="btn" style="background-color: #f39c12; width: 100%; font-size: 16px; padding: 15px; margin-bottom: 15px;" id="btn-sugerir">💡 Sugerir un Cambio / Corrección</button>
+        <a href="index.html" style="color: #3498db; text-decoration: none; font-weight: bold;">Ir a mi Calendario (Login)</a>
+      </div>
+    </div>
+
   </div>
 
 
