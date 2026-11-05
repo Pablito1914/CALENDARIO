@@ -1,5 +1,6 @@
 
-const SCRIPT_URL = '/api/proxy';
+const GAS_DIRECT_URL = 'https://script.google.com/macros/s/AKfycbx7ELt_fbz8faqZ6mcI4XqD8OXR30NKGVsfvcpCMHcBEpYApsgRxyTGvOu61BaSO8obxw/exec';
+const SCRIPT_URL = (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? GAS_DIRECT_URL : '/api/proxy';
 let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
 
 window.addEventListener('online', syncOfflineQueue);
@@ -8,7 +9,7 @@ window.addEventListener('offline', () => alert('Estás sin conexión. Los cambio
 const WRITE_ACTIONS = ['guardarEvento','editarEvento','borrarEvento','guardarSubtarea','editarSubtarea','borrarSubtarea','cambiarEstadoSubtarea','generarPDF','generarReporteBusqueda'];
 
 async function apiCall(action, data = null, timeoutMs = 45000) {
-  if (!navigator.onLine) {
+  if (!navigator.onLine && window.location.protocol !== 'file:') {
     if (WRITE_ACTIONS.includes(action)) {
       offlineQueue.push({ action, data });
       localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
@@ -28,7 +29,8 @@ async function apiCall(action, data = null, timeoutMs = 45000) {
 
   try {
     let response;
-    if (WRITE_ACTIONS.includes(action)) {
+    const isDirectGas = SCRIPT_URL === GAS_DIRECT_URL;
+    if (WRITE_ACTIONS.includes(action) && !isDirectGas) {
       response = await fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -37,9 +39,10 @@ async function apiCall(action, data = null, timeoutMs = 45000) {
       });
     } else {
       const params = new URLSearchParams({ action });
-      if (data) params.append('data', JSON.stringify(data));
+      if (data !== null && data !== undefined) params.append('data', JSON.stringify(data));
       response = await fetch(`${SCRIPT_URL}?${params.toString()}`, {
         method: 'GET',
+        redirect: 'follow',
         signal: controller.signal
       });
     }
@@ -118,21 +121,27 @@ async function syncOfflineQueue() {
 }
 
 async function cargarDatosIniciales() {
-  // Inicializar Flatpickr para fechas
-  flatpickr('#fechaInicio', { enableTime: true, dateFormat: 'Y-m-d\\TH:i', locale: 'es', disableMobile: true });
-  flatpickr('#fechaFin', { enableTime: true, dateFormat: 'Y-m-d\\TH:i', locale: 'es', disableMobile: true });
-  flatpickr('#sub-fecha', { enableTime: false, dateFormat: 'Y-m-d', locale: 'es', disableMobile: true });
+  // Inicializar Flatpickr para fechas de forma segura
+  try {
+    if (typeof flatpickr !== 'undefined') {
+      flatpickr('#fechaInicio', { enableTime: true, dateFormat: 'Y-m-d\\TH:i', locale: 'es', disableMobile: true });
+      flatpickr('#fechaFin', { enableTime: true, dateFormat: 'Y-m-d\\TH:i', locale: 'es', disableMobile: true });
+      flatpickr('#sub-fecha', { enableTime: false, dateFormat: 'Y-m-d', locale: 'es', disableMobile: true });
+    }
+  } catch (e) {
+    console.warn('Flatpickr no disponible:', e);
+  }
   
   mostrarLoader('Cargando desde la nube (PWA)...');
   try {
     const res = await apiCall('getEventos');
     eventosActuales = res.result || [];
-    renderEventos();
-    renderCalendar();
     document.getElementById('loader').classList.add('hidden');
     document.getElementById('main-view').classList.remove('hidden');
     document.getElementById('form-view').classList.add('hidden');
     document.getElementById('detalle-view').classList.add('hidden');
+    renderEventos();
+    try { renderCalendar(); } catch (calErr) { console.warn('Calendar error:', calErr); }
     
     if (window.innerWidth <= 768) {
       switchView('cal');
@@ -271,7 +280,10 @@ async function cargarDatosIniciales() {
   let activeTimerSecondsLeft = 0;
   let activeTimerTotalSeconds = 0;
 
-  window.onload = function() { 
+  let pwaIniciada = false;
+  function iniciarPWA() {
+    if (pwaIniciada) return;
+    pwaIniciada = true;
     const urlParams = new URLSearchParams(window.location.search);
     const sharedId = urlParams.get('share');
     if (sharedId) {
@@ -279,7 +291,9 @@ async function cargarDatosIniciales() {
     } else {
       cargarDatosIniciales();
     }
-  };
+  }
+  document.addEventListener('DOMContentLoaded', iniciarPWA);
+  window.addEventListener('load', iniciarPWA);
 
   function mostrarLoader(msg) {
     document.getElementById('loader').innerText = msg || "Cargando...";
@@ -348,15 +362,19 @@ async function cargarDatosIniciales() {
       div.innerHTML += `
         <div class="card">
           <div class="card-actions">
+            <button class="btn-icon" onclick="enviarWhatsAppActividad('${ev.id}')" title="Enviar por WhatsApp">📲</button>
             <button class="btn-icon" onclick="editarEventoInit('${ev.id}')" title="Editar">✏️</button>
             <button class="btn-icon" onclick="borrarEvento('${ev.id}')" title="Borrar">🗑️</button>
           </div>
           ${semaforoTarea}
           <span class="badge ${badgeClass}">${ev.tipo}</span>
-          <h3 style="margin-top:5px; margin-bottom: 5px; padding-right:60px; color:${colorTituloEvento};">${ev.titulo}</h3>
+          <h3 style="margin-top:5px; margin-bottom: 5px; padding-right:90px; color:${colorTituloEvento};">${ev.titulo}</h3>
           <p style="color:#7f8c8d; margin-top: 0;">🗓️ ${fecha} ${duracionInfo} ${ubicacionInfo}</p>
           ${syncInfo}
-          <button class="btn" style="margin-top: 10px;" onclick="verDetalle('${ev.id}')">Ver Detalle / Asignar</button>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px;">
+            <button class="btn" onclick="verDetalle('${ev.id}')">Ver Detalle / Asignar</button>
+            <button class="btn" style="background-color: #25D366;" onclick="enviarWhatsAppActividad('${ev.id}')">📲 Enviar por WhatsApp</button>
+          </div>
         </div>`;
     });
   }
@@ -564,12 +582,12 @@ async function cargarDatosIniciales() {
     const gUbi = document.getElementById('group-ubicacion');
     
     if (tipo === 'Tarea') {
-      extraFields.classList.add('hidden');
+      extraFields.classList.remove('hidden');
       groupEstado.classList.remove('hidden');
       gfFin.classList.remove('hidden');
       gDurH.classList.add('hidden');
       gDurM.classList.add('hidden');
-      gUbi.classList.add('hidden');
+      gUbi.classList.remove('hidden');
     } else if (tipo === 'Reunión' || tipo === 'GADPSDT') {
       extraFields.classList.remove('hidden');
       groupEstado.classList.add('hidden');
@@ -638,7 +656,7 @@ async function cargarDatosIniciales() {
     toggleFormFields();
   }
 
-  function guardarEventoBtn() {
+  function guardarEventoBtn(enviarWA = false) {
     // FORCE FLUSH PENDING ASISTENTES INPUT
     const asisInputVal = document.getElementById('asistentes-input').value.trim().replace(',', '');
     if (asisInputVal && !asistentesArray.includes(asisInputVal)) {
@@ -677,6 +695,14 @@ async function cargarDatosIniciales() {
          String(dateInicio.getMinutes()).padStart(2, '0');
     } else {
        if(!ev.fechaFin) return alert("La fecha de fin es obligatoria.");
+    }
+
+    if (editandoEventoId) {
+      ev.id = editandoEventoId;
+    }
+
+    if (enviarWA) {
+      enviarWhatsAppActividad(ev);
     }
     
     mostrarLoader("Guardando actividad...");
@@ -737,20 +763,23 @@ async function cargarDatosIniciales() {
     if(currentEventoData.tipo === 'Reunión') document.getElementById('det-badge').classList.add('badge-reunion');
     if(currentEventoData.tipo === 'GADPSDT') document.getElementById('det-badge').classList.add('badge-gadpsdt');
     
-    document.getElementById('seccion-detalles-comunes').classList.add('hidden');
+    document.getElementById('seccion-detalles-comunes').classList.remove('hidden');
     document.getElementById('seccion-reunion').classList.add('hidden');
     document.getElementById('seccion-tarea').classList.add('hidden');
     
-    if (currentEventoData.tipo === 'Reunión' || currentEventoData.tipo === 'Evento' || currentEventoData.tipo === 'GADPSDT') {
-      document.getElementById('seccion-detalles-comunes').classList.remove('hidden');
-      document.getElementById('det-asistentes').innerText = currentEventoData.asistentes || 'Ninguno';
-      document.getElementById('det-acuerdos').innerHTML = linkify(currentEventoData.acuerdos) || 'Ninguno';
-      
-      if(currentEventoData.ubicacion) {
-        document.getElementById('det-ubicacion').innerHTML = `<a href="https://maps.google.com/?q=${encodeURIComponent(currentEventoData.ubicacion)}" target="_blank" style="color:#3498db; text-decoration:underline;">${currentEventoData.ubicacion}</a>`;
-      } else {
-        document.getElementById('det-ubicacion').innerText = 'No especificada';
-      }
+    const fechaIniFmt = currentEventoData.fechaInicio ? new Date(currentEventoData.fechaInicio).toLocaleString() : 'No especificada';
+    const fechaFinFmt = currentEventoData.fechaFin ? new Date(currentEventoData.fechaFin).toLocaleString() : '';
+    const elDetFecha = document.getElementById('det-fecha');
+    if (elDetFecha) {
+      elDetFecha.innerText = fechaIniFmt + (fechaFinFmt ? ' — Fin: ' + fechaFinFmt : '');
+    }
+    document.getElementById('det-asistentes').innerText = currentEventoData.asistentes || 'Ninguno';
+    document.getElementById('det-acuerdos').innerHTML = linkify(currentEventoData.acuerdos) || 'Ninguno';
+    
+    if(currentEventoData.ubicacion) {
+      document.getElementById('det-ubicacion').innerHTML = `<a href="https://maps.google.com/?q=${encodeURIComponent(currentEventoData.ubicacion)}" target="_blank" style="color:#3498db; text-decoration:underline;">${currentEventoData.ubicacion}</a>`;
+    } else {
+      document.getElementById('det-ubicacion').innerText = 'No especificada';
     }
     
     if (currentEventoData.tipo === 'Reunión' || currentEventoData.tipo === 'GADPSDT') {
@@ -763,6 +792,79 @@ async function cargarDatosIniciales() {
     
     document.getElementById('main-view').classList.add('hidden');
     document.getElementById('detalle-view').classList.remove('hidden');
+  }
+
+  function enviarWhatsAppActividad(idOrObj) {
+    let ev = null;
+    if (typeof idOrObj === 'object' && idOrObj !== null) {
+      ev = idOrObj;
+    } else {
+      ev = eventosActuales.find(e => e.id === idOrObj) || currentEventoData;
+    }
+    if (!ev) return alert("No se encontró la información de la actividad.");
+
+    let lineas = [];
+    lineas.push(`📅 *DETALLE DE ACTIVIDAD (${ev.tipo || 'Actividad'})*`);
+    lineas.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lineas.push(`📌 *Título:* ${ev.titulo || 'Sin título'}`);
+
+    if (ev.fechaInicio) {
+      const dIni = new Date(ev.fechaInicio);
+      const strIni = isNaN(dIni.getTime()) ? ev.fechaInicio : dIni.toLocaleString();
+      lineas.push(`🗓️ *Inicio:* ${strIni}`);
+    }
+
+    if ((ev.tipo === 'Reunión' || ev.tipo === 'GADPSDT') && ev.duracion > 0) {
+      lineas.push(`⏱️ *Duración:* ${ev.duracion} min`);
+    } else if (ev.fechaFin) {
+      const dFin = new Date(ev.fechaFin);
+      const strFin = isNaN(dFin.getTime()) ? ev.fechaFin : dFin.toLocaleString();
+      lineas.push(`⏳ *Fin / Límite:* ${strFin}`);
+    }
+
+    if (ev.tipo === 'Tarea' && ev.estadoTarea) {
+      lineas.push(`🚦 *Estado:* ${ev.estadoTarea}`);
+    }
+
+    if (ev.ubicacion && ev.ubicacion.trim() !== "") {
+      const ubi = ev.ubicacion.trim();
+      lineas.push(`📍 *Ubicación:* ${ubi}`);
+      if (!ubi.startsWith('http://') && !ubi.startsWith('https://')) {
+        lineas.push(`🗺️ *Ver en Mapa:* https://maps.google.com/?q=${encodeURIComponent(ubi)}`);
+      }
+    } else {
+      lineas.push(`📍 *Ubicación:* No especificada`);
+    }
+
+    lineas.push(`👥 *Asistentes:* ${ev.asistentes && ev.asistentes.trim() !== "" ? ev.asistentes.trim() : 'No especificados'}`);
+    lineas.push(`📝 *Acuerdos / Notas:* ${ev.acuerdos && ev.acuerdos.trim() !== "" ? ev.acuerdos.trim() : 'Ninguno'}`);
+
+    let subs = [];
+    if (ev.id) {
+      if (typeof currentEventoId !== 'undefined' && currentEventoId === ev.id && subsActuales && subsActuales.length > 0) {
+        subs = subsActuales;
+      } else if (todasLasSubtareas && todasLasSubtareas.length > 0) {
+        subs = todasLasSubtareas.filter(s => s.idEvento === ev.id || s.eventoId === ev.id);
+      }
+    }
+
+    if (subs.length > 0) {
+      lineas.push(``);
+      lineas.push(`📋 *Subtareas / Puntos a tratar (${subs.length}):*`);
+      subs.forEach((sub, idx) => {
+        let subStr = `${idx + 1}. *${sub.titulo}* [${sub.estado || 'En camino'}]`;
+        if (sub.responsable) subStr += `\n   👤 Resp: ${sub.responsable}`;
+        if (sub.fechaLimiteUI || sub.fechaLimite) subStr += ` | 📅 Límite: ${sub.fechaLimiteUI || sub.fechaLimite}`;
+        if (sub.duracionAsignada > 0) subStr += ` | ⏱️ ${sub.duracionAsignada} min`;
+        if (sub.referencia) subStr += `\n   🔗 Ref: ${sub.referencia}`;
+        if (sub.resoluciones) subStr += `\n   ✅ Resoluciones: ${sub.resoluciones}`;
+        lineas.push(subStr);
+      });
+    }
+
+    const mensaje = lineas.join('\n');
+    const urlWA = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(mensaje);
+    window.open(urlWA, '_blank');
   }
 
   let subsActuales = [];

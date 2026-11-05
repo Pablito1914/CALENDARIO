@@ -358,9 +358,9 @@
     }
   </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 </head>
 
 <body>
@@ -470,15 +470,19 @@
             lang="es" placeholder="Acuerdos o notas..."></textarea></div>
       </div>
 
-      <button class="btn" onclick="guardarEventoBtn()">Guardar Actividad</button>
-      <button class="btn" style="background:#95a5a6;" onclick="showMain()">Cancelar</button>
+      <div class="flex-row-responsive" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" onclick="guardarEventoBtn(false)">💾 Guardar Actividad</button>
+        <button class="btn" style="background-color: #25D366;" onclick="guardarEventoBtn(true)">📲 Guardar y Enviar por WhatsApp</button>
+        <button class="btn" style="background:#95a5a6;" onclick="showMain()">Cancelar</button>
+      </div>
     </div>
 
     <!-- VISTA: DETALLES DE REUNION Y SUBTAREAS -->
     <div id="detalle-view" class="hidden">
       <div style="display:flex; justify-content:space-between; margin-bottom:15px; flex-wrap: wrap; gap: 10px;">
         <button class="btn" style="background:#95a5a6; margin:0; width:auto;" onclick="showMain()">← Volver al Inicio</button>
-        <div style="display:flex; gap:5px;">
+        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+          <button class="btn" style="background:#25D366; margin:0; width:auto;" onclick="enviarWhatsAppActividad(currentEventoId)">📲 Enviar por WhatsApp</button>
           <button class="btn" style="background:#3498db; margin:0; width:auto;" onclick="editarEventoInit(currentEventoId)">✏️ Editar</button>
           <button class="btn" style="background:#e74c3c; margin:0; width:auto;" onclick="borrarEvento(currentEventoId)">🗑️ Borrar</button>
         </div>
@@ -489,7 +493,8 @@
 
       <div id="seccion-detalles-comunes" class="hidden"
         style="margin-bottom:20px; background:#f9f9f9; padding:15px; border-radius:6px; border:1px solid #ddd;">
-        <p style="margin-top:0;"><strong>Ubicación:</strong> <span id="det-ubicacion"></span></p>
+        <p style="margin-top:0;"><strong>Fecha / Hora:</strong> <span id="det-fecha"></span></p>
+        <p><strong>Ubicación:</strong> <span id="det-ubicacion"></span></p>
         <p><strong>Asistentes:</strong> <span id="det-asistentes"></span></p>
         <p style="margin-bottom:0;"><strong>Acuerdos:</strong> <span id="det-acuerdos"></span></p>
       </div>
@@ -578,6 +583,7 @@
       </div>
 
       <div style="display:flex; gap:10px; margin-top: 15px; flex-wrap: wrap;">
+        <button class="btn" style="flex:1; margin-top:0; background-color: #25D366;" onclick="enviarWhatsAppActividad(currentEventoId)">📲 Enviar por WhatsApp</button>
         <button class="btn btn-pdf" style="flex:1; margin-top:0;" onclick="descargarPDF()">📄 Descargar Reporte PDF</button>
         <button class="btn" style="flex:1; margin-top:0; background-color: #27ae60;" onclick="copiarEnlaceCompartir()">🔗 Compartir Enlace Web</button>
       </div>

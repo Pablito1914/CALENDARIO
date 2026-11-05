@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calendario-cache-v1789593946291';
+const CACHE_NAME = 'calendario-cache-v1793900500000';
 const urlsToCache = [
   './',
   './index.html',
@@ -20,19 +20,21 @@ self.addEventListener('install', event => {
 
 self.addEventListener('fetch', event => {
   // If request is to the API, network only (since app.js handles offline queueing)
-  if (event.request.url.includes('script.google.com') || event.request.url.includes('script.googleusercontent.com')) {
+  if (event.request.url.includes('/api/') || event.request.url.includes('script.google.com') || event.request.url.includes('script.googleusercontent.com')) {
     return; // Don't intercept API calls
   }
 
-  // Cache first, falling back to network
+  // Network first, falling back to cache
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        if (response) {
-          return response;
+        if (response && response.status === 200 && event.request.method === 'GET') {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
         }
-        return fetch(event.request);
+        return response;
       })
+      .catch(() => caches.match(event.request))
   );
 });
 
