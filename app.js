@@ -829,9 +829,6 @@ async function cargarDatosIniciales() {
     if (ev.ubicacion && ev.ubicacion.trim() !== "") {
       const ubi = ev.ubicacion.trim();
       lineas.push(`📍 *Ubicación:* ${ubi}`);
-      if (!ubi.startsWith('http://') && !ubi.startsWith('https://')) {
-        lineas.push(`🗺️ *Ver en Mapa:* https://maps.google.com/?q=${encodeURIComponent(ubi)}`);
-      }
     } else {
       lineas.push(`📍 *Ubicación:* No especificada`);
     }
@@ -1240,16 +1237,7 @@ async function cargarDatosIniciales() {
   }
 
   function copiarEnlaceCompartir() {
-    const url = "https://calendario-frontend-chi.vercel.app/?share=" + currentEventoId;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(() => {
-        alert("Enlace de compartir copiado al portapapeles.\n\nPuedes enviarlo por WhatsApp o correo.");
-      }).catch(err => {
-        alert("Error al copiar el enlace: " + err);
-      });
-    } else {
-      alert("Copia este enlace manualmente:\n\n" + url);
-    }
+    enviarWhatsAppActividad(currentEventoId);
   }
 
   async function cargarVistaCompartida(id) {
