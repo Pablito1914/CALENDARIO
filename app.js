@@ -777,7 +777,12 @@ async function cargarDatosIniciales() {
     document.getElementById('det-acuerdos').innerHTML = linkify(currentEventoData.acuerdos) || 'Ninguno';
     
     if(currentEventoData.ubicacion) {
-      document.getElementById('det-ubicacion').innerHTML = `<a href="https://maps.google.com/?q=${encodeURIComponent(currentEventoData.ubicacion)}" target="_blank" style="color:#3498db; text-decoration:underline;">${currentEventoData.ubicacion}</a>`;
+      const ubiDet = currentEventoData.ubicacion.trim();
+      const coordDet = ubiDet.match(/^(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)$/);
+      const urlDet = (ubiDet.startsWith('http://') || ubiDet.startsWith('https://'))
+        ? ubiDet
+        : `https://www.google.com/maps?q=${coordDet ? coordDet[1] + ',' + coordDet[2] : encodeURIComponent(ubiDet)}`;
+      document.getElementById('det-ubicacion').innerHTML = `<a href="${urlDet}" target="_blank" style="color:#3498db; text-decoration:underline; font-weight:600;">🗺️ Ver en Google Maps (${urlDet})</a>`;
     } else {
       document.getElementById('det-ubicacion').innerText = 'No especificada';
     }
@@ -811,11 +816,11 @@ async function cargarDatosIniciales() {
     if (ev.fechaInicio) {
       const dIni = new Date(ev.fechaInicio);
       const strIni = isNaN(dIni.getTime()) ? ev.fechaInicio : dIni.toLocaleString();
-      lineas.push(`🗓️ *Inicio:* ${strIni}`);
+      lineas.push(`📅 *Inicio:* ${strIni}`);
     }
 
     if ((ev.tipo === 'Reunión' || ev.tipo === 'GADPSDT') && ev.duracion > 0) {
-      lineas.push(`⏱️ *Duración:* ${ev.duracion} min`);
+      lineas.push(`⏰ *Duración:* ${ev.duracion} min`);
     } else if (ev.fechaFin) {
       const dFin = new Date(ev.fechaFin);
       const strFin = isNaN(dFin.getTime()) ? ev.fechaFin : dFin.toLocaleString();
@@ -828,7 +833,13 @@ async function cargarDatosIniciales() {
 
     if (ev.ubicacion && ev.ubicacion.trim() !== "") {
       const ubi = ev.ubicacion.trim();
-      lineas.push(`📍 *Ubicación:* ${ubi}`);
+      let urlMapa = ubi;
+      if (!ubi.startsWith('http://') && !ubi.startsWith('https://')) {
+        const coordMatch = ubi.match(/^(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)$/);
+        const queryMapa = coordMatch ? `${coordMatch[1]},${coordMatch[2]}` : encodeURIComponent(ubi);
+        urlMapa = `https://www.google.com/maps?q=${queryMapa}`;
+      }
+      lineas.push(`📍 *Ubicación:* ${urlMapa}`);
     } else {
       lineas.push(`📍 *Ubicación:* No especificada`);
     }
